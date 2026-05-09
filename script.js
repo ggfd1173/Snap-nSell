@@ -13,9 +13,10 @@ const startSelling = document.querySelector("#startSelling");
 const removePhoto = document.querySelector("#removePhoto");
 const stepTabs = document.querySelectorAll("[data-step-target]");
 const stepViews = document.querySelectorAll("[data-step]");
+const sellButton = document.querySelector(".bottom-nav-sell");
 
 const OPENROUTER_CONFIG = {
-  enabled: false,
+  enabled: true,
   apiKey: "",
   model: "openai/gpt-4o-mini",
 };
@@ -108,7 +109,7 @@ function showToast(message) {
   setTimeout(() => {
     toast.classList.remove("show");
     toast.textContent = "Copied";
-  }, 1600);
+  }, 2600);
 }
 
 function goToStep(step) {
@@ -348,10 +349,11 @@ function extractJson(text) {
 }
 
 function aiPrompt(details) {
-  return `Create a marketplace listing from the item photo and seller details.
+  return `Analyze the uploaded product photo and seller details, then create a marketplace listing.
 
 Return only JSON with this shape:
 {
+  "detectedItem": "what the photo appears to show",
   "title": "short listing title",
   "description": "friendly marketplace description, 2-4 short paragraphs",
   "bullets": ["3-5 buyer-facing selling points"],
@@ -379,12 +381,93 @@ Seller details:
 - Marketplace: ${details.marketplace}
 - Extra notes: ${details.notes || "none"}
 
-Be honest about visible condition. Do not invent exact model numbers, dimensions, or included accessories unless the seller wrote them. Use NZD-style dollar prices. The market feedback should explain how the recommended price and listing quality compare with similar marketplace items.`;
+Rules:
+- First identify what is visible in the image.
+- Use seller details when supplied, but do not invent exact model numbers, dimensions, accessories, or defects.
+- If the exact brand/model is uncertain, say that in the description.
+- Compare against realistic similar used marketplace items and explain the pricing logic.
+- Use NZD-style dollar prices.
+- The comparisons should be plausible market comparables, not exact live search results.
+- The market feedback should explain whether the price is competitive and what would help the listing sell faster.`;
 }
+
+const aiResponseFormat = {
+  type: "json_schema",
+  json_schema: {
+    name: "marketplace_listing",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        detectedItem: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        bullets: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 3,
+          maxItems: 5,
+        },
+        category: {
+          type: "string",
+          enum: ["furniture", "electronics", "fashion", "appliance", "sports", "general"],
+        },
+        recommendedPrice: { type: "number" },
+        lowPrice: { type: "number" },
+        highPrice: { type: "number" },
+        priceReason: { type: "string" },
+        marketFeedback: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            position: { type: "string" },
+            summary: { type: "string" },
+            tips: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 2,
+              maxItems: 4,
+            },
+          },
+          required: ["position", "summary", "tips"],
+        },
+        comparisons: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              name: { type: "string" },
+              price: { type: "number" },
+              source: { type: "string" },
+            },
+            required: ["name", "price", "source"],
+          },
+          minItems: 3,
+          maxItems: 3,
+        },
+      },
+      required: [
+        "detectedItem",
+        "title",
+        "description",
+        "bullets",
+        "category",
+        "recommendedPrice",
+        "lowPrice",
+        "highPrice",
+        "priceReason",
+        "marketFeedback",
+        "comparisons",
+      ],
+    },
+  },
+};
 
 async function requestAiListing(details) {
   if (!OPENROUTER_CONFIG.apiKey) {
-    throw new Error("OpenRouter key is not configured.");
+    throw new Error("OpenRouter key is not configured. Paste your key into OPENROUTER_CONFIG.apiKey in script.js.");
   }
 
   if (!OPENROUTER_CONFIG.model) {
@@ -395,7 +478,22 @@ async function requestAiListing(details) {
     throw new Error("Upload a photo before using AI.");
   }
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const requestBody = {
+    model: OPENROUTER_CONFIG.model,
+    temperature: 0.25,
+    max_tokens: 1000,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: aiPrompt(details) },
+          { type: "image_url", image_url: { url: imageDataUrl } },
+        ],
+      },
+    ],
+  };
+
+  const sendRequest = (body) => fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${OPENROUTER_CONFIG.apiKey}`,
@@ -403,23 +501,16 @@ async function requestAiListing(details) {
       "HTTP-Referer": location.origin,
       "X-OpenRouter-Title": "Snap & Sell",
     },
-    body: JSON.stringify({
-      model: OPENROUTER_CONFIG.model,
-      temperature: 0.35,
-      max_tokens: 900,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: aiPrompt(details) },
-            { type: "image_url", image_url: { url: imageDataUrl } },
-          ],
-        },
-      ],
-    }),
+    body: JSON.stringify(body),
   });
 
-  const payload = await response.json().catch(() => ({}));
+  let response = await sendRequest({ ...requestBody, response_format: aiResponseFormat });
+  let payload = await response.json().catch(() => ({}));
+
+  if (!response.ok && /response_format|schema|structured/i.test(payload?.error?.message || payload?.message || "")) {
+    response = await sendRequest(requestBody);
+    payload = await response.json().catch(() => ({}));
+  }
 
   if (!response.ok) {
     const message = payload?.error?.message || payload?.message || `OpenRouter request failed (${response.status}).`;
@@ -678,6 +769,11 @@ removePhoto.addEventListener("click", () => {
 });
 
 startSelling.addEventListener("click", () => {
+  photoInput.click();
+});
+
+sellButton.addEventListener("click", () => {
+  goToStep(1);
   photoInput.click();
 });
 
