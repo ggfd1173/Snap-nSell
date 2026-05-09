@@ -9,6 +9,7 @@ const toast = document.querySelector("#toast");
 const photoNext = document.querySelector("#photoNext");
 const fakeUpload = document.querySelector("#fakeUpload");
 const installApp = document.querySelector("#installApp");
+const startSelling = document.querySelector("#startSelling");
 const stepTabs = document.querySelectorAll("[data-step-target]");
 const stepViews = document.querySelectorAll("[data-step]");
 
@@ -123,8 +124,14 @@ function goToStep(step) {
     view.classList.toggle("active", Number(view.dataset.step) === nextStep);
   });
 
+  document.body.dataset.step = String(nextStep);
+
   document.querySelectorAll(".step-tab").forEach((tab) => {
     tab.classList.toggle("active", Number(tab.dataset.stepTarget) === nextStep);
+  });
+
+  document.querySelectorAll(".bottom-nav-item").forEach((item) => {
+    item.classList.toggle("active", Number(item.dataset.stepTarget) === nextStep);
   });
 
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -566,6 +573,10 @@ photoInput.addEventListener("change", (event) => {
 
 photoNext.addEventListener("click", () => {
   goToStep(2);
+});
+
+startSelling.addEventListener("click", () => {
+  photoInput.click();
 });
 
 window.addEventListener("beforeinstallprompt", (event) => {

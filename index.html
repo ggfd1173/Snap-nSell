@@ -7,17 +7,17 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Snap & Sell" />
     <title>Snap & Sell</title>
-    <link rel="manifest" href="./manifest.json?v=snap-sell" />
-    <link rel="icon" href="./assets/icon.svg?v=snap-sell" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./assets/icon.svg?v=snap-sell" />
-    <link rel="stylesheet" href="./styles.css?v=snap-sell" />
+    <link rel="manifest" href="./manifest.json?v=clean-vibe2" />
+    <link rel="icon" href="./assets/icon.svg?v=clean-vibe2" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/icon.svg?v=clean-vibe2" />
+    <link rel="stylesheet" href="./styles.css?v=clean-vibe2" />
   </head>
-  <body>
+  <body data-step="1">
     <header class="topbar">
       <div class="brand-lockup">
-        <img src="./assets/logo.png?v=snap-sell" alt="Snap & Sell logo" class="brand-logo" />
+        <img src="./assets/logo-mark.png?v=clean-vibe2" alt="Snap & Sell logo" class="brand-logo" />
         <div>
-          <p class="eyebrow">Snap It. List It. Sell It.</p>
+          <p class="eyebrow">Snap & Sell</p>
           <h1>Snap & Sell</h1>
         </div>
       </div>
@@ -28,13 +28,78 @@
     </header>
 
     <main class="app-shell">
-      <nav class="stepper" aria-label="Listing progress">
-        <button type="button" class="step-tab active" data-step-target="1">1. Photo</button>
-        <button type="button" class="step-tab" data-step-target="2">2. Details & market</button>
-        <button type="button" class="step-tab" data-step-target="3">3. Review</button>
-      </nav>
-
       <section class="step-view active" data-step="1" aria-label="Step 1 photo">
+        <section class="hero-panel" aria-label="Snap and Sell introduction">
+          <img src="./assets/logo-mark.png?v=clean-vibe2" alt="" class="hero-mark" />
+          <h2>Sell Smarter,<br />Not Harder</h2>
+          <p>Snap photos of your items and let AI create the perfect listing with market-based pricing.</p>
+          <button type="button" class="hero-cta" id="startSelling">
+            <span class="button-camera-icon" aria-hidden="true"></span>
+            <span>Start Selling</span>
+          </button>
+        </section>
+
+        <section class="feature-grid" aria-label="App features">
+          <article class="feature-card">
+            <span class="feature-icon camera-icon" aria-hidden="true"></span>
+            <strong>Snap Photos</strong>
+            <p>Upload item pics</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon price-icon" aria-hidden="true">$</span>
+            <strong>Get Pricing</strong>
+            <p>Market estimates</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon leaf-icon" aria-hidden="true"></span>
+            <strong>Save Items</strong>
+            <p>Don't waste, sell</p>
+          </article>
+        </section>
+
+        <section class="how-section" aria-label="How Snap and Sell works">
+          <h2>Sell Your Items in Seconds</h2>
+          <p>AI-powered listings that help you sell faster and at the right price</p>
+
+          <div class="how-list">
+            <article class="how-item">
+              <span class="how-icon camera-icon" aria-hidden="true"></span>
+              <div>
+                <h3>1. Take a Photo</h3>
+                <p>Snap pictures of the item you want to sell with your phone camera</p>
+              </div>
+            </article>
+            <article class="how-item">
+              <span class="how-icon flash-icon" aria-hidden="true"></span>
+              <div>
+                <h3>2. AI Analysis</h3>
+                <p>Our AI compares your item with similar products to generate a compelling description and price</p>
+              </div>
+            </article>
+            <article class="how-item">
+              <span class="how-icon trend-icon" aria-hidden="true"></span>
+              <div>
+                <h3>3. Sell Anywhere</h3>
+                <p>Export your listing to Trade Me, Facebook Marketplace, or any other platform in seconds</p>
+              </div>
+            </article>
+          </div>
+
+          <article class="smart-card">
+            <span class="smart-icon flash-icon" aria-hidden="true"></span>
+            <div>
+              <h3>Smart Pricing</h3>
+              <p>Get data-driven price suggestions based on real market comparisons, so you never leave money on the table</p>
+            </div>
+          </article>
+        </section>
+
+        <nav class="stepper" aria-label="Listing progress">
+          <button type="button" class="step-tab active" data-step-target="1">1. Take a Photo</button>
+          <button type="button" class="step-tab" data-step-target="2">2. AI Analysis</button>
+          <button type="button" class="step-tab" data-step-target="3">3. Sell Anywhere</button>
+        </nav>
+
         <div class="step-layout photo-step">
           <div class="photo-panel">
             <label class="drop-zone" for="photoInput" id="dropZone">
@@ -63,7 +128,8 @@
           </div>
 
           <aside class="output-panel step-side">
-            <h2>Snap the item</h2>
+            <span class="side-icon flash-icon" aria-hidden="true"></span>
+            <h2>Smart Pricing</h2>
             <p>A clear front photo helps the AI understand the item, condition, colour, and what buyers will notice first.</p>
             <button type="button" class="primary-button" id="photoNext">Continue to details</button>
           </aside>
@@ -185,7 +251,21 @@
       </section>
     </main>
 
+    <nav class="bottom-nav" aria-label="Mobile app navigation">
+      <button type="button" class="bottom-nav-item active" data-step-target="1">
+        <span class="home-icon" aria-hidden="true"></span>
+        <span>Home</span>
+      </button>
+      <button type="button" class="bottom-nav-sell" data-step-target="1" aria-label="Sell">
+        <span>+</span>
+      </button>
+      <button type="button" class="bottom-nav-item" data-step-target="3">
+        <span class="box-icon" aria-hidden="true"></span>
+        <span>Listings</span>
+      </button>
+    </nav>
+
     <div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
-    <script src="./script.js?v=snap-sell"></script>
+    <script src="./script.js?v=clean-vibe2"></script>
   </body>
 </html>
