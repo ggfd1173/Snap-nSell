@@ -58,9 +58,52 @@ button {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  object-fit: cover;
-  object-position: center;
   box-shadow: none;
+}
+
+.brand-logo rect,
+.hero-mark rect {
+  fill: #eaf8f1;
+}
+
+.logo-leaf {
+  fill: #a4d39f;
+  stroke: #547a58;
+  stroke-width: 14;
+}
+
+.logo-veins {
+  fill: none;
+  stroke: #6d986b;
+  stroke-linecap: round;
+  stroke-width: 8;
+}
+
+.logo-stem {
+  fill: none;
+  stroke: #2e5a2c;
+  stroke-linecap: round;
+  stroke-width: 16;
+}
+
+.logo-outer {
+  fill: #f9fff9;
+  stroke: #2e5a2c;
+  stroke-width: 12;
+}
+
+.logo-inner {
+  fill: #f9fff9;
+  stroke: #6d986b;
+  stroke-width: 10;
+}
+
+.logo-pupil {
+  fill: #2e5a2c;
+}
+
+.logo-spark {
+  fill: #f9fff9;
 }
 
 .topbar-actions {
@@ -152,7 +195,6 @@ h3 {
   width: 76px;
   height: 76px;
   border-radius: 20px;
-  object-fit: cover;
   background: var(--green-soft);
 }
 
@@ -484,6 +526,7 @@ h3 {
 }
 
 .photo-panel {
+  position: relative;
   display: grid;
   grid-template-rows: 1fr auto;
   min-height: 520px;
@@ -519,6 +562,29 @@ h3 {
   height: 100%;
   object-fit: contain;
   background: #f9fffc;
+}
+
+.remove-photo-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 3;
+  display: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(7, 21, 45, 0.12);
+}
+
+.remove-photo-button.show {
+  display: grid;
 }
 
 .upload-placeholder {
@@ -876,6 +942,72 @@ textarea:focus {
   padding: 10px clamp(20px, 8vw, 80px) max(10px, env(safe-area-inset-bottom));
 }
 
+.listings-page {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.listings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.listings-heading h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+}
+
+.listing-history {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.listing-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  padding: 18px;
+}
+
+.listing-card h3 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.listing-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.listing-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--green-dark);
+  font-weight: 850;
+}
+
+.empty-listings {
+  display: none;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--muted);
+  padding: 28px;
+  text-align: center;
+}
+
+.empty-listings.show {
+  display: block;
+}
+
 .bottom-nav button {
   border: 0;
   background: transparent;
@@ -994,6 +1126,7 @@ textarea:focus {
   .photo-insights,
   .field-row,
   .comparison-list,
+  .listing-history,
   .stepper,
   .feature-grid {
     grid-template-columns: 1fr;

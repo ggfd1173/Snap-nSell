@@ -5,6 +5,7 @@ A mobile-first marketplace listing demo:
 1. Snap or upload a product photo.
 2. Add item details and review price guidance, similar listings, and market feedback.
 3. Review the generated listing and press a demo-only upload button.
+4. Revisit generated listings from the Listings tab.
 
 The app is set up as a Progressive Web App, so it can be installed to a phone home screen after it is hosted on HTTPS.
 

@@ -10,12 +10,13 @@ const photoNext = document.querySelector("#photoNext");
 const fakeUpload = document.querySelector("#fakeUpload");
 const installApp = document.querySelector("#installApp");
 const startSelling = document.querySelector("#startSelling");
+const removePhoto = document.querySelector("#removePhoto");
 const stepTabs = document.querySelectorAll("[data-step-target]");
 const stepViews = document.querySelectorAll("[data-step]");
 
 const OPENROUTER_CONFIG = {
-  enabled: true,
-  apiKey: "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",
+  enabled: false,
+  apiKey: "",
   model: "openai/gpt-4o-mini",
 };
 
@@ -46,6 +47,8 @@ const output = {
   feedbackSummary: document.querySelector("#feedbackSummary"),
   feedbackList: document.querySelector("#feedbackList"),
   checklist: document.querySelector("#checklist"),
+  listingHistory: document.querySelector("#listingHistory"),
+  emptyListings: document.querySelector("#emptyListings"),
 };
 
 const categoryData = {
@@ -93,6 +96,7 @@ let imageDataUrl = "";
 let currentCategory = "general";
 let generatedListing = false;
 let installPromptEvent = null;
+let savedListings = JSON.parse(localStorage.getItem("snapSellListings") || "[]");
 
 function money(value) {
   return `$${Math.max(1, Math.round(value))}`;
@@ -120,6 +124,10 @@ function goToStep(step) {
     return;
   }
 
+  if (nextStep === 4) {
+    renderSavedListings();
+  }
+
   stepViews.forEach((view) => {
     view.classList.toggle("active", Number(view.dataset.step) === nextStep);
   });
@@ -135,6 +143,72 @@ function goToStep(step) {
   });
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function persistListings() {
+  localStorage.setItem("snapSellListings", JSON.stringify(savedListings));
+}
+
+function currentListingSnapshot(source = "Demo estimate") {
+  const details = getDetails();
+
+  return {
+    id: Date.now(),
+    title: output.title.textContent,
+    description: output.description.textContent,
+    price: output.price.textContent,
+    marketplace: details.marketplace,
+    source,
+    createdAt: new Date().toLocaleString([], {
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      month: "short",
+    }),
+  };
+}
+
+function saveCurrentListing(source) {
+  const title = output.title.textContent.trim();
+
+  if (!title || title === "Upload a photo and add a few details") {
+    return;
+  }
+
+  const listing = currentListingSnapshot(source);
+  savedListings = [listing, ...savedListings].slice(0, 20);
+  persistListings();
+  renderSavedListings();
+}
+
+function renderSavedListings() {
+  if (!output.listingHistory || !output.emptyListings) return;
+
+  output.emptyListings.classList.toggle("show", savedListings.length === 0);
+  output.listingHistory.replaceChildren(
+    ...savedListings.map((listing) => {
+      const card = document.createElement("article");
+      card.className = "listing-card";
+
+      const title = document.createElement("h3");
+      const description = document.createElement("p");
+      const footer = document.createElement("div");
+      const price = document.createElement("span");
+      const meta = document.createElement("span");
+
+      footer.className = "listing-card-footer";
+      title.textContent = listing.title;
+      description.textContent = listing.description.length > 150
+        ? `${listing.description.slice(0, 150)}...`
+        : listing.description;
+      price.textContent = listing.price || "Price pending";
+      meta.textContent = listing.marketplace || listing.createdAt;
+      footer.append(price, meta);
+      card.append(title, description, footer);
+
+      return card;
+    })
+  );
 }
 
 function categoryFor(text) {
@@ -416,6 +490,9 @@ function buildListing(markGenerated = true) {
     hasNotes: details.notes.length > 10,
   });
   generatedListing = markGenerated || generatedListing;
+  if (markGenerated) {
+    saveCurrentListing("Local generator");
+  }
   renderChecklist();
 }
 
@@ -475,6 +552,7 @@ function applyAiListing(aiListing, details) {
   }
 
   generatedListing = true;
+  saveCurrentListing("AI estimate");
   renderChecklist();
 }
 
@@ -554,6 +632,7 @@ async function handlePhoto(file) {
   output.qualityScore.textContent = `${imageAnalysis.quality}/100`;
   output.colourGuess.textContent = imageAnalysis.colour;
   output.angleTip.textContent = imageAnalysis.angleTip;
+  removePhoto.classList.add("show");
 
   if (!fields.itemName.value.trim()) {
     const cleanedName = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
@@ -565,6 +644,23 @@ async function handlePhoto(file) {
   }
 
   buildListing(false);
+  goToStep(2);
+}
+
+function clearPhotoState() {
+  photoInput.value = "";
+  imageAnalysis = null;
+  imageDataUrl = "";
+  generatedListing = false;
+  previewImage.removeAttribute("src");
+  previewImage.style.display = "none";
+  uploadPlaceholder.style.display = "grid";
+  removePhoto.classList.remove("show");
+  output.status.textContent = "Ready for a photo";
+  output.qualityScore.textContent = "--";
+  output.colourGuess.textContent = "--";
+  output.angleTip.textContent = "Upload first";
+  renderChecklist();
 }
 
 photoInput.addEventListener("change", (event) => {
@@ -573,6 +669,12 @@ photoInput.addEventListener("change", (event) => {
 
 photoNext.addEventListener("click", () => {
   goToStep(2);
+});
+
+removePhoto.addEventListener("click", () => {
+  clearPhotoState();
+  showToast("Photo removed");
+  goToStep(1);
 });
 
 startSelling.addEventListener("click", () => {
@@ -667,17 +769,8 @@ refreshComparisons.addEventListener("click", () => {
 
 clearButton.addEventListener("click", () => {
   form.reset();
-  photoInput.value = "";
-  imageAnalysis = null;
-  imageDataUrl = "";
-  generatedListing = false;
-  previewImage.removeAttribute("src");
-  previewImage.style.display = "none";
-  uploadPlaceholder.style.display = "grid";
+  clearPhotoState();
   output.status.textContent = "Ready for a photo";
-  output.qualityScore.textContent = "--";
-  output.colourGuess.textContent = "--";
-  output.angleTip.textContent = "Upload first";
   output.title.textContent = "Upload a photo and add a few details";
   output.description.textContent =
     "Your generated marketplace-ready description will appear here with a clear title, useful buyer details, and a friendly tone.";
@@ -698,8 +791,7 @@ clearButton.addEventListener("click", () => {
 });
 
 fakeUpload.addEventListener("click", () => {
-  output.status.textContent = "Demo upload complete";
-  showToast("Demo only: listing would be uploaded now");
+  showToast("Demo only: no marketplace upload sent");
 });
 
 document.querySelectorAll("[data-copy]").forEach((button) => {
@@ -727,6 +819,7 @@ document.querySelectorAll("[data-copy]").forEach((button) => {
 
 renderComparisons();
 renderChecklist();
+renderSavedListings();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
