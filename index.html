@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f8b7c" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="MarketReady" />
+    <title>MarketReady Listing Studio</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Listing assistant</p>
+        <h1>MarketReady</h1>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="install-button" id="installApp">Install app</button>
+        <div class="status-pill" id="analysisStatus">Ready for a photo</div>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <nav class="stepper" aria-label="Listing progress">
+        <button type="button" class="step-tab active" data-step-target="1">1. Photo</button>
+        <button type="button" class="step-tab" data-step-target="2">2. Details & market</button>
+        <button type="button" class="step-tab" data-step-target="3">3. Review</button>
+      </nav>
+
+      <section class="step-view active" data-step="1" aria-label="Step 1 photo">
+        <div class="step-layout photo-step">
+          <div class="photo-panel">
+            <label class="drop-zone" for="photoInput" id="dropZone">
+              <input id="photoInput" type="file" accept="image/*" capture="environment" />
+              <img id="previewImage" alt="Uploaded item preview" />
+              <span class="upload-placeholder" id="uploadPlaceholder">
+                <span class="upload-icon">+</span>
+                <span>Take or upload a product photo</span>
+              </span>
+            </label>
+
+            <div class="photo-insights">
+              <div>
+                <span class="metric-label">Photo quality</span>
+                <strong id="qualityScore">--</strong>
+              </div>
+              <div>
+                <span class="metric-label">Detected colour</span>
+                <strong id="colourGuess">--</strong>
+              </div>
+              <div>
+                <span class="metric-label">Suggested angle</span>
+                <strong id="angleTip">Upload first</strong>
+              </div>
+            </div>
+          </div>
+
+          <aside class="output-panel step-side">
+            <h2>Start with the item photo</h2>
+            <p>A clear front photo helps the AI understand the item, condition, colour, and what buyers will notice first.</p>
+            <button type="button" class="primary-button" id="photoNext">Continue to details</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="step-view" data-step="2" aria-label="Step 2 details and market comparison">
+        <div class="workspace">
+          <form class="details-panel" id="listingForm">
+            <div class="field-row">
+              <label>
+                Item name
+                <input id="itemName" name="itemName" type="text" placeholder="e.g. Wooden dining chair" />
+              </label>
+              <label>
+                Brand
+                <input id="brand" name="brand" type="text" placeholder="Optional" />
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label>
+                Condition
+                <select id="condition" name="condition">
+                  <option>Excellent</option>
+                  <option selected>Good</option>
+                  <option>Fair</option>
+                  <option>Needs repair</option>
+                </select>
+              </label>
+              <label>
+                Marketplace
+                <select id="marketplace" name="marketplace">
+                  <option>Facebook Marketplace</option>
+                  <option>Trade Me</option>
+                  <option>eBay</option>
+                  <option>General listing</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              Extra details
+              <textarea id="notes" name="notes" rows="4" placeholder="Measurements, age, pickup suburb, included accessories, faults, reason for selling..."></textarea>
+            </label>
+
+            <div class="actions">
+              <button type="button" class="ghost-button" data-step-target="1">Back</button>
+              <button type="submit" class="primary-button">Generate listing</button>
+              <button type="button" class="ghost-button" id="clearButton">Clear</button>
+            </div>
+          </form>
+
+          <div class="market-stack">
+            <article class="output-panel">
+              <div class="panel-heading">
+                <h2>Price Guide</h2>
+                <span id="priceConfidence" class="mini-pill">Waiting</span>
+              </div>
+              <div class="price-box">
+                <span>Recommended list price</span>
+                <strong id="priceOutput">--</strong>
+              </div>
+              <p id="priceReason">Add an item name or upload a photo to estimate a sensible starting point.</p>
+              <div class="range-bar" aria-label="Price range">
+                <span id="rangeFill"></span>
+              </div>
+              <div class="range-labels">
+                <span id="rangeLow">Low</span>
+                <span id="rangeHigh">High</span>
+              </div>
+            </article>
+
+            <article class="output-panel">
+              <div class="panel-heading">
+                <h2>Market Feedback</h2>
+                <span id="marketPosition" class="mini-pill">Waiting</span>
+              </div>
+              <p id="feedbackSummary">Generate a listing to see pricing, demand, and presentation feedback based on similar marketplace items.</p>
+              <ul id="feedbackList" class="feedback-list"></ul>
+            </article>
+          </div>
+        </div>
+
+        <article class="output-panel comparison-panel">
+          <div class="panel-heading">
+            <h2>Similar Listings</h2>
+            <button type="button" class="ghost-button compact" id="refreshComparisons">Refresh</button>
+          </div>
+          <div class="comparison-list" id="comparisonList"></div>
+        </article>
+      </section>
+
+      <section class="step-view" data-step="3" aria-label="Step 3 final listing">
+        <section class="review-layout">
+          <article class="output-panel review-main">
+            <div class="panel-heading">
+              <h2>Final Listing</h2>
+              <button type="button" class="icon-button" data-copy="descriptionOutput" title="Copy description">Copy</button>
+            </div>
+            <h3 id="titleOutput">Upload a photo and add a few details</h3>
+            <p id="descriptionOutput">Your generated marketplace-ready description will appear here with a clear title, useful buyer details, and a friendly tone.</p>
+            <ul id="bulletOutput" class="bullet-list"></ul>
+          </article>
+
+          <aside class="output-panel publish-panel">
+            <div class="panel-heading">
+              <h2>Publishing Checklist</h2>
+              <span class="mini-pill">Before posting</span>
+            </div>
+            <ul class="checklist" id="checklist"></ul>
+            <div class="publish-actions">
+              <button type="button" class="ghost-button" data-step-target="2">Back to edit</button>
+              <button type="button" class="primary-button fake-upload-button" id="fakeUpload">Upload to marketplace</button>
+            </div>
+            <p class="demo-note" id="uploadNote">Demo only. This button does not post anything.</p>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+    <script src="./script.js"></script>
+  </body>
+</html>

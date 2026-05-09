@@ -1,0 +1,726 @@
+const photoInput = document.querySelector("#photoInput");
+const previewImage = document.querySelector("#previewImage");
+const uploadPlaceholder = document.querySelector("#uploadPlaceholder");
+const dropZone = document.querySelector("#dropZone");
+const form = document.querySelector("#listingForm");
+const clearButton = document.querySelector("#clearButton");
+const refreshComparisons = document.querySelector("#refreshComparisons");
+const toast = document.querySelector("#toast");
+const photoNext = document.querySelector("#photoNext");
+const fakeUpload = document.querySelector("#fakeUpload");
+const installApp = document.querySelector("#installApp");
+const stepTabs = document.querySelectorAll("[data-step-target]");
+const stepViews = document.querySelectorAll("[data-step]");
+
+const OPENROUTER_CONFIG = {
+  enabled: ture,
+  apiKey: "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",
+  model: "openai/gpt-4o-mini",
+};
+
+const fields = {
+  itemName: document.querySelector("#itemName"),
+  brand: document.querySelector("#brand"),
+  condition: document.querySelector("#condition"),
+  marketplace: document.querySelector("#marketplace"),
+  notes: document.querySelector("#notes"),
+};
+
+const output = {
+  status: document.querySelector("#analysisStatus"),
+  qualityScore: document.querySelector("#qualityScore"),
+  colourGuess: document.querySelector("#colourGuess"),
+  angleTip: document.querySelector("#angleTip"),
+  title: document.querySelector("#titleOutput"),
+  description: document.querySelector("#descriptionOutput"),
+  bullets: document.querySelector("#bulletOutput"),
+  price: document.querySelector("#priceOutput"),
+  priceReason: document.querySelector("#priceReason"),
+  priceConfidence: document.querySelector("#priceConfidence"),
+  rangeFill: document.querySelector("#rangeFill"),
+  rangeLow: document.querySelector("#rangeLow"),
+  rangeHigh: document.querySelector("#rangeHigh"),
+  comparisonList: document.querySelector("#comparisonList"),
+  marketPosition: document.querySelector("#marketPosition"),
+  feedbackSummary: document.querySelector("#feedbackSummary"),
+  feedbackList: document.querySelector("#feedbackList"),
+  checklist: document.querySelector("#checklist"),
+};
+
+const categoryData = {
+  furniture: {
+    keywords: ["chair", "table", "desk", "sofa", "couch", "cabinet", "dresser", "bed", "shelf"],
+    base: 120,
+    comps: ["Modern dining chair", "Solid wood side table", "Compact home office desk"],
+  },
+  electronics: {
+    keywords: ["phone", "laptop", "tablet", "camera", "speaker", "headphones", "watch", "monitor", "console"],
+    base: 320,
+    comps: ["Pre-owned device with charger", "Lightly used tech bundle", "Popular model in good condition"],
+  },
+  fashion: {
+    keywords: ["jacket", "dress", "shoes", "boots", "bag", "coat", "jeans", "shirt", "watch"],
+    base: 75,
+    comps: ["Branded wardrobe item", "Clean casual wear", "Seasonal fashion piece"],
+  },
+  appliance: {
+    keywords: ["fridge", "washer", "dryer", "microwave", "vacuum", "oven", "coffee", "kettle"],
+    base: 180,
+    comps: ["Working household appliance", "Clean kitchen appliance", "Reliable home essential"],
+  },
+  sports: {
+    keywords: ["bike", "helmet", "golf", "board", "weights", "treadmill", "scooter", "kayak"],
+    base: 150,
+    comps: ["Outdoor gear in used condition", "Fitness item ready for pickup", "Popular sports equipment"],
+  },
+  general: {
+    keywords: [],
+    base: 95,
+    comps: ["Similar local listing", "Comparable used item", "Recently listed alternative"],
+  },
+};
+
+const conditionMultipliers = {
+  Excellent: 1.15,
+  Good: 1,
+  Fair: 0.72,
+  "Needs repair": 0.38,
+};
+
+let imageAnalysis = null;
+let imageDataUrl = "";
+let currentCategory = "general";
+let generatedListing = false;
+let installPromptEvent = null;
+
+function money(value) {
+  return `$${Math.max(1, Math.round(value))}`;
+}
+
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => {
+    toast.classList.remove("show");
+    toast.textContent = "Copied";
+  }, 1600);
+}
+
+function goToStep(step) {
+  const nextStep = Number(step);
+
+  if (nextStep === 2 && !imageAnalysis) {
+    showToast("Add a photo first");
+    return;
+  }
+
+  if (nextStep === 3 && !generatedListing) {
+    showToast("Generate the listing first");
+    return;
+  }
+
+  stepViews.forEach((view) => {
+    view.classList.toggle("active", Number(view.dataset.step) === nextStep);
+  });
+
+  document.querySelectorAll(".step-tab").forEach((tab) => {
+    tab.classList.toggle("active", Number(tab.dataset.stepTarget) === nextStep);
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function categoryFor(text) {
+  const lowered = text.toLowerCase();
+  return (
+    Object.entries(categoryData).find(([, data]) =>
+      data.keywords.some((keyword) => lowered.includes(keyword))
+    )?.[0] || "general"
+  );
+}
+
+function marketplaceTone(marketplace) {
+  if (marketplace.includes("Facebook")) {
+    return "Friendly, quick to scan, and good for local pickup.";
+  }
+
+  if (marketplace.includes("Trade Me")) {
+    return "Detailed, tidy, and clear about condition for confident bidding.";
+  }
+
+  if (marketplace.includes("eBay")) {
+    return "Search-friendly with clear specifics for wider buyers.";
+  }
+
+  return "Clear and balanced for a general marketplace listing.";
+}
+
+function inferColourName([r, g, b]) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+
+  if (max - min < 24) {
+    if (max > 205) return "white";
+    if (max < 75) return "black";
+    return "grey";
+  }
+
+  if (r > g + 35 && r > b + 35) return g > 105 ? "tan / warm" : "red";
+  if (g > r + 25 && g > b + 20) return "green";
+  if (b > r + 25 && b > g + 20) return "blue";
+  if (r > 170 && g > 140 && b < 110) return "yellow";
+  return "mixed";
+}
+
+function analyseImage(file) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      imageDataUrl = reader.result;
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        const size = 80;
+        canvas.width = size;
+        canvas.height = size;
+        context.drawImage(image, 0, 0, size, size);
+        const pixels = context.getImageData(0, 0, size, size).data;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let brightness = 0;
+        let contrast = 0;
+        const samples = pixels.length / 4;
+
+        for (let i = 0; i < pixels.length; i += 4) {
+          r += pixels[i];
+          g += pixels[i + 1];
+          b += pixels[i + 2];
+          brightness += (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+        }
+
+        r = Math.round(r / samples);
+        g = Math.round(g / samples);
+        b = Math.round(b / samples);
+        brightness = brightness / samples;
+
+        for (let i = 0; i < pixels.length; i += 4) {
+          const pixelBrightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+          contrast += Math.abs(pixelBrightness - brightness);
+        }
+
+        contrast = contrast / samples;
+        const quality = Math.min(98, Math.max(35, Math.round(brightness * 0.28 + contrast * 0.9)));
+        const aspect = image.width / image.height;
+        const angleTip =
+          aspect > 1.25
+            ? "Crop closer"
+            : aspect < 0.75
+              ? "Add side view"
+              : "Looks balanced";
+
+        resolve({
+          fileName: file.name,
+          brightness,
+          contrast,
+          quality,
+          colour: inferColourName([r, g, b]),
+          dimensions: `${image.width} x ${image.height}`,
+          angleTip,
+        });
+      };
+
+      image.src = reader.result;
+      previewImage.src = reader.result;
+      previewImage.style.display = "block";
+      uploadPlaceholder.style.display = "none";
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function getDetails() {
+  return {
+    itemName: fields.itemName.value.trim(),
+    brand: fields.brand.value.trim(),
+    condition: fields.condition.value,
+    marketplace: fields.marketplace.value,
+    notes: fields.notes.value.trim(),
+  };
+}
+
+function extractJson(text) {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fenced ? fenced[1] : trimmed;
+  const firstBrace = candidate.indexOf("{");
+  const lastBrace = candidate.lastIndexOf("}");
+
+  if (firstBrace === -1 || lastBrace === -1) {
+    throw new Error("The model did not return JSON.");
+  }
+
+  return JSON.parse(candidate.slice(firstBrace, lastBrace + 1));
+}
+
+function aiPrompt(details) {
+  return `Create a marketplace listing from the item photo and seller details.
+
+Return only JSON with this shape:
+{
+  "title": "short listing title",
+  "description": "friendly marketplace description, 2-4 short paragraphs",
+  "bullets": ["3-5 buyer-facing selling points"],
+  "category": "furniture|electronics|fashion|appliance|sports|general",
+  "recommendedPrice": 120,
+  "lowPrice": 90,
+  "highPrice": 150,
+  "priceReason": "brief reason for the price",
+  "marketFeedback": {
+    "position": "competitive|premium|value|needs work",
+    "summary": "short buyer-market feedback after comparing similar listings",
+    "tips": ["2-4 practical seller actions to improve the listing or sale chance"]
+  },
+  "comparisons": [
+    {"name": "similar listing name", "price": 110, "source": "Facebook Marketplace"},
+    {"name": "similar listing name", "price": 125, "source": "Trade Me"},
+    {"name": "similar listing name", "price": 140, "source": "Local marketplace"}
+  ]
+}
+
+Seller details:
+- Item name: ${details.itemName || "unknown"}
+- Brand: ${details.brand || "unknown"}
+- Condition: ${details.condition}
+- Marketplace: ${details.marketplace}
+- Extra notes: ${details.notes || "none"}
+
+Be honest about visible condition. Do not invent exact model numbers, dimensions, or included accessories unless the seller wrote them. Use NZD-style dollar prices. The market feedback should explain how the recommended price and listing quality compare with similar marketplace items.`;
+}
+
+async function requestAiListing(details) {
+  if (!OPENROUTER_CONFIG.apiKey) {
+    throw new Error("OpenRouter key is not configured.");
+  }
+
+  if (!OPENROUTER_CONFIG.model) {
+    throw new Error("OpenRouter model is not configured.");
+  }
+
+  if (!imageDataUrl) {
+    throw new Error("Upload a photo before using AI.");
+  }
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_CONFIG.apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": location.origin,
+      "X-OpenRouter-Title": "MarketReady Listing Studio",
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_CONFIG.model,
+      temperature: 0.35,
+      max_tokens: 900,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: aiPrompt(details) },
+            { type: "image_url", image_url: { url: imageDataUrl } },
+          ],
+        },
+      ],
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = payload?.error?.message || payload?.message || `OpenRouter request failed (${response.status}).`;
+    throw new Error(message);
+  }
+
+  const content = payload?.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("OpenRouter returned an empty response.");
+  }
+
+  return extractJson(Array.isArray(content) ? content.map((part) => part.text || "").join("\n") : content);
+}
+
+function buildListing(markGenerated = true) {
+  const details = getDetails();
+  const seedText = `${details.itemName} ${details.brand} ${details.notes} ${imageAnalysis?.fileName || ""}`;
+  currentCategory = categoryFor(seedText);
+  const category = categoryData[currentCategory];
+  const titleSubject = details.itemName || category.comps[0];
+  const titleParts = [details.brand, details.condition, titleSubject].filter(Boolean);
+  const title = titleParts.join(" ");
+  const colourLine = imageAnalysis ? `The photo suggests a ${imageAnalysis.colour} main colour.` : "";
+  const detailLine = details.notes ? `Extra details: ${details.notes}` : "Add measurements, accessories, pickup details, and any faults before posting.";
+  const tone = marketplaceTone(details.marketplace);
+
+  const description = [
+    `${title} available in ${details.condition.toLowerCase()} condition.`,
+    colourLine,
+    detailLine,
+    `Prepared for ${details.marketplace}. ${tone}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const bullets = [
+    imageAnalysis ? `Photo checked: ${imageAnalysis.quality}/100 quality score` : "Add a bright front photo",
+    details.brand ? `Brand included: ${details.brand}` : "Mention the brand if known",
+    details.condition === "Needs repair" ? "Be upfront about repair needs" : "Ready for buyer questions",
+    details.marketplace.includes("Trade Me") ? "Consider reserve and shipping options" : "Best for clear local pickup terms",
+  ];
+
+  const conditionMultiplier = conditionMultipliers[details.condition] || 1;
+  const confidence = imageAnalysis && details.itemName ? "High" : details.itemName || imageAnalysis ? "Medium" : "Low";
+  const recommended = category.base * conditionMultiplier;
+  const low = recommended * 0.78;
+  const high = recommended * 1.28;
+
+  output.title.textContent = title;
+  output.description.textContent = description;
+  output.bullets.replaceChildren(...bullets.map((item) => createListItem(item)));
+  output.price.textContent = money(recommended);
+  output.priceReason.textContent = `Based on ${details.condition.toLowerCase()} condition, ${currentCategory} category, and typical used-item positioning. Verify against live marketplace results before posting.`;
+  output.priceConfidence.textContent = `${confidence} confidence`;
+  output.rangeFill.style.width = `${confidence === "High" ? 78 : confidence === "Medium" ? 58 : 36}%`;
+  output.rangeLow.textContent = money(low);
+  output.rangeHigh.textContent = money(high);
+
+  renderComparisons(recommended, details.marketplace);
+  renderMarketFeedback({
+    category: currentCategory,
+    condition: details.condition,
+    recommended,
+    low,
+    high,
+    marketplace: details.marketplace,
+    hasPhoto: Boolean(imageAnalysis),
+    hasNotes: details.notes.length > 10,
+  });
+  generatedListing = markGenerated || generatedListing;
+  renderChecklist();
+}
+
+function applyAiListing(aiListing, details) {
+  const safeCategory = categoryData[aiListing.category] ? aiListing.category : categoryFor(`${aiListing.title} ${details.notes}`);
+  currentCategory = safeCategory;
+  const recommended = Number(aiListing.recommendedPrice) || categoryData[currentCategory].base;
+  const low = Number(aiListing.lowPrice) || recommended * 0.78;
+  const high = Number(aiListing.highPrice) || recommended * 1.28;
+  const bullets = Array.isArray(aiListing.bullets) && aiListing.bullets.length
+    ? aiListing.bullets.slice(0, 5)
+    : ["AI generated listing copy", "Check details before posting", "Confirm price against live listings"];
+
+  output.title.textContent = aiListing.title || details.itemName || "Marketplace listing";
+  output.description.textContent = aiListing.description || "AI generated a listing, but no description was returned.";
+  output.bullets.replaceChildren(...bullets.map((item) => createListItem(item)));
+  output.price.textContent = money(recommended);
+  output.priceReason.textContent = aiListing.priceReason || "AI estimated this from the photo and seller details. Verify against live marketplace results before posting.";
+  output.priceConfidence.textContent = "AI estimate";
+  output.rangeFill.style.width = "82%";
+  output.rangeLow.textContent = money(low);
+  output.rangeHigh.textContent = money(high);
+  output.marketPosition.textContent = aiListing.marketFeedback?.position || "AI estimate";
+  output.feedbackSummary.textContent =
+    aiListing.marketFeedback?.summary ||
+    "AI compared the item details with similar marketplace positioning and estimated a competitive listing strategy.";
+  output.feedbackList.replaceChildren(
+    ...(Array.isArray(aiListing.marketFeedback?.tips) && aiListing.marketFeedback.tips.length
+      ? aiListing.marketFeedback.tips.slice(0, 4)
+      : ["Confirm the price against live marketplace results", "Add exact measurements and pickup details"]).map((tip) =>
+      createListItem(tip)
+    )
+  );
+
+  if (Array.isArray(aiListing.comparisons) && aiListing.comparisons.length) {
+    output.comparisonList.replaceChildren(
+      ...aiListing.comparisons.slice(0, 3).map((comparison) => {
+        const card = document.createElement("div");
+        card.className = "comparison-card";
+        const source = comparison.source || details.marketplace;
+        const name = document.createElement("strong");
+        const sourceLine = document.createElement("span");
+        const note = document.createElement("span");
+        const price = document.createElement("div");
+
+        price.className = "price";
+        name.textContent = comparison.name || "Similar listing";
+        sourceLine.textContent = source;
+        note.textContent = "AI market estimate";
+        price.textContent = money(Number(comparison.price) || recommended);
+        card.append(name, sourceLine, note, price);
+        return card;
+      })
+    );
+  } else {
+    renderComparisons(recommended, details.marketplace);
+  }
+
+  generatedListing = true;
+  renderChecklist();
+}
+
+function createListItem(text, className = "") {
+  const li = document.createElement("li");
+  li.textContent = text;
+  if (className) li.className = className;
+  return li;
+}
+
+function renderComparisons(recommended = categoryData[currentCategory].base, marketplace = fields.marketplace.value) {
+  const category = categoryData[currentCategory];
+  const offsets = [0.82, 1.04, 1.22].sort(() => Math.random() - 0.5);
+  const cards = category.comps.map((name, index) => {
+    const card = document.createElement("div");
+    card.className = "comparison-card";
+    const price = recommended * offsets[index];
+    const days = [1, 3, 6][index];
+    card.innerHTML = `
+      <strong>${name}</strong>
+      <span>${marketplace}</span>
+      <span>Listed ${days} day${days > 1 ? "s" : ""} ago</span>
+      <div class="price">${money(price)}</div>
+    `;
+    return card;
+  });
+
+  output.comparisonList.replaceChildren(...cards);
+}
+
+function renderMarketFeedback({ category, condition, recommended, low, high, marketplace, hasPhoto, hasNotes }) {
+  const midpoint = (low + high) / 2;
+  const position = recommended <= midpoint * 0.92 ? "Value" : recommended >= midpoint * 1.08 ? "Premium" : "Competitive";
+  const conditionText =
+    condition === "Excellent"
+      ? "The condition supports a stronger asking price."
+      : condition === "Fair" || condition === "Needs repair"
+        ? "The condition makes clear fault notes especially important."
+        : "The price sits in a normal used-item range.";
+  const marketplaceText = marketplace.includes("Trade Me")
+    ? "Trade Me buyers usually expect more detail, so measurements and shipping or pickup terms matter."
+    : marketplace.includes("Facebook")
+      ? "Facebook buyers scan quickly, so a sharp first photo and direct pickup details should help."
+      : "A clear title, honest condition notes, and a realistic price should make the listing easier to trust.";
+  const tips = [
+    hasPhoto ? "Use the current photo as the main image if the item is clearly visible." : "Add a bright front photo before posting.",
+    hasNotes ? "Keep the extra details in the listing because they answer buyer questions early." : "Add size, age, accessories, pickup suburb, and any faults.",
+    recommended > categoryData[category].base ? "Start near the recommended price, then lower it if there is no interest." : "The price is approachable, so avoid discounting too quickly.",
+    marketplaceText,
+  ];
+
+  output.marketPosition.textContent = position;
+  output.feedbackSummary.textContent = `${conditionText} Similar ${category} listings suggest a useful range of ${money(low)} to ${money(high)}, with ${money(recommended)} as a sensible starting point.`;
+  output.feedbackList.replaceChildren(...tips.map((tip) => createListItem(tip)));
+}
+
+function renderChecklist() {
+  const details = getDetails();
+  const checks = [
+    { text: "Photo uploaded", done: Boolean(imageAnalysis) },
+    { text: "Item name is specific", done: details.itemName.length > 3 },
+    { text: "Condition selected", done: Boolean(details.condition) },
+    { text: "Faults or notes included", done: details.notes.length > 10 },
+    { text: "Price checked against similar listings", done: output.price.textContent !== "--" },
+  ];
+
+  output.checklist.replaceChildren(
+    ...checks.map((check) => createListItem(check.text, check.done ? "done" : ""))
+  );
+}
+
+async function handlePhoto(file) {
+  if (!file || !file.type.startsWith("image/")) return;
+  output.status.textContent = "Analysing photo";
+  imageAnalysis = await analyseImage(file);
+  output.status.textContent = "Photo analysed";
+  output.qualityScore.textContent = `${imageAnalysis.quality}/100`;
+  output.colourGuess.textContent = imageAnalysis.colour;
+  output.angleTip.textContent = imageAnalysis.angleTip;
+
+  if (!fields.itemName.value.trim()) {
+    const cleanedName = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim();
+    const looksGeneric = /^(img|image|photo|screenshot|dsc|pxl)\s*\d*/i.test(cleanedName);
+
+    if (cleanedName.length > 3 && !looksGeneric) {
+      fields.itemName.value = cleanedName.replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+  }
+
+  buildListing(false);
+}
+
+photoInput.addEventListener("change", (event) => {
+  handlePhoto(event.target.files[0]);
+});
+
+photoNext.addEventListener("click", () => {
+  goToStep(2);
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPromptEvent = event;
+  installApp.classList.add("show");
+});
+
+installApp.addEventListener("click", async () => {
+  if (!installPromptEvent) {
+    showToast("Use your browser menu to add this app");
+    return;
+  }
+
+  installPromptEvent.prompt();
+  await installPromptEvent.userChoice;
+  installPromptEvent = null;
+  installApp.classList.remove("show");
+});
+
+window.addEventListener("appinstalled", () => {
+  installPromptEvent = null;
+  installApp.classList.remove("show");
+  showToast("App installed");
+});
+
+stepTabs.forEach((button) => {
+  button.addEventListener("click", () => {
+    goToStep(button.dataset.stepTarget);
+  });
+});
+
+dropZone.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  dropZone.classList.add("dragging");
+});
+
+dropZone.addEventListener("dragleave", () => {
+  dropZone.classList.remove("dragging");
+});
+
+dropZone.addEventListener("drop", (event) => {
+  event.preventDefault();
+  dropZone.classList.remove("dragging");
+  handlePhoto(event.dataTransfer.files[0]);
+});
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const details = getDetails();
+
+  if (!OPENROUTER_CONFIG.enabled) {
+    output.status.textContent = "Listing generated";
+    buildListing();
+    goToStep(3);
+    return;
+  }
+
+  output.status.textContent = "Asking OpenRouter";
+
+  try {
+    const aiListing = await requestAiListing(details);
+    applyAiListing(aiListing, details);
+    output.status.textContent = "AI listing generated";
+    goToStep(3);
+  } catch (error) {
+    output.status.textContent = "AI failed, used local";
+    buildListing();
+    output.priceReason.textContent = `${output.priceReason.textContent} AI note: ${error.message}`;
+    goToStep(3);
+  }
+});
+
+Object.values(fields).forEach((field) => {
+  field.addEventListener("input", () => {
+    if (imageAnalysis || fields.itemName.value.trim()) {
+      buildListing(false);
+    } else {
+      renderChecklist();
+    }
+  });
+});
+
+refreshComparisons.addEventListener("click", () => {
+  const textPrice = Number(output.price.textContent.replace(/[^0-9]/g, ""));
+  renderComparisons(textPrice || categoryData[currentCategory].base, fields.marketplace.value);
+});
+
+clearButton.addEventListener("click", () => {
+  form.reset();
+  photoInput.value = "";
+  imageAnalysis = null;
+  imageDataUrl = "";
+  generatedListing = false;
+  previewImage.removeAttribute("src");
+  previewImage.style.display = "none";
+  uploadPlaceholder.style.display = "grid";
+  output.status.textContent = "Ready for a photo";
+  output.qualityScore.textContent = "--";
+  output.colourGuess.textContent = "--";
+  output.angleTip.textContent = "Upload first";
+  output.title.textContent = "Upload a photo and add a few details";
+  output.description.textContent =
+    "Your generated marketplace-ready description will appear here with a clear title, useful buyer details, and a friendly tone.";
+  output.bullets.replaceChildren();
+  output.price.textContent = "--";
+  output.priceReason.textContent = "Add an item name or upload a photo to estimate a sensible starting point.";
+  output.priceConfidence.textContent = "Waiting";
+  output.rangeFill.style.width = "0";
+  output.rangeLow.textContent = "Low";
+  output.rangeHigh.textContent = "High";
+  output.marketPosition.textContent = "Waiting";
+  output.feedbackSummary.textContent = "Generate a listing to see pricing, demand, and presentation feedback based on similar marketplace items.";
+  output.feedbackList.replaceChildren();
+  currentCategory = "general";
+  renderComparisons();
+  renderChecklist();
+  goToStep(1);
+});
+
+fakeUpload.addEventListener("click", () => {
+  output.status.textContent = "Demo upload complete";
+  showToast("Demo only: listing would be uploaded now");
+});
+
+document.querySelectorAll("[data-copy]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const element = document.querySelector(`#${button.dataset.copy}`);
+    const text = element.textContent.trim();
+
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand("copy");
+      helper.remove();
+    }
+
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 1400);
+  });
+});
+
+renderComparisons();
+renderChecklist();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {
+      output.status.textContent = "Ready for a photo";
+    });
+  });
+}
