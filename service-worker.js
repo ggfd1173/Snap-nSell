@@ -1,4 +1,4 @@
-const CACHE_NAME = "snap-and-sell-v6";
+const CACHE_NAME = "snap-and-sell-v7";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,6 +7,8 @@ const APP_SHELL = [
   "./styles.css?v=clean-vibe2",
   "./styles.css?v=workflow1",
   "./styles.css?v=workflow2",
+  "./config.js",
+  "./config.js?v=workflow2",
   "./script.js",
   "./script.js?v=clean-vibe",
   "./script.js?v=clean-vibe2",

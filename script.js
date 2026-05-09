@@ -17,8 +17,14 @@ const sellButton = document.querySelector(".bottom-nav-sell");
 
 const OPENROUTER_CONFIG = {
   enabled: true,
-  apiKey: "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",
-  model: "openai/gpt-4o-mini",
+  apiKey:
+    window.SNAP_SELL_CONFIG?.openRouterApiKey ||
+    localStorage.getItem("snapSellOpenRouterKey") ||
+    "",
+  model:
+    window.SNAP_SELL_CONFIG?.openRouterModel ||
+    localStorage.getItem("snapSellOpenRouterModel") ||
+    "openai/gpt-4o-mini",
 };
 
 const fields = {
@@ -110,6 +116,12 @@ function showToast(message) {
     toast.classList.remove("show");
     toast.textContent = "Copied";
   }, 2600);
+}
+
+function showAiError(error) {
+  const message = error?.message || "AI request failed.";
+  output.status.textContent = "AI needs attention";
+  showToast(`AI error: ${message}`);
 }
 
 function goToStep(step) {
@@ -499,7 +511,7 @@ async function requestAiListing(details) {
       Authorization: `Bearer ${OPENROUTER_CONFIG.apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": location.origin,
-      "X-OpenRouter-Title": "Snap & Sell",
+      "X-Title": "Snap & Sell",
     },
     body: JSON.stringify(body),
   });
@@ -513,7 +525,10 @@ async function requestAiListing(details) {
   }
 
   if (!response.ok) {
-    const message = payload?.error?.message || payload?.message || `OpenRouter request failed (${response.status}).`;
+    const message =
+      payload?.error?.message ||
+      payload?.message ||
+      `OpenRouter request failed (${response.status}).`;
     throw new Error(message);
   }
 
@@ -841,7 +856,7 @@ form.addEventListener("submit", async (event) => {
     output.status.textContent = "AI listing generated";
     goToStep(3);
   } catch (error) {
-    output.status.textContent = "AI failed, used local";
+    showAiError(error);
     buildListing();
     output.priceReason.textContent = `${output.priceReason.textContent} AI note: ${error.message}`;
     goToStep(3);
