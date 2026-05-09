@@ -32,6 +32,7 @@ const fields = {
   brand: document.querySelector("#brand"),
   condition: document.querySelector("#condition"),
   marketplace: document.querySelector("#marketplace"),
+  tone: document.querySelector("#tone"),
   notes: document.querySelector("#notes"),
 };
 
@@ -249,6 +250,18 @@ function marketplaceTone(marketplace) {
   return "Clear and balanced for a general marketplace listing.";
 }
 
+function toneInstruction(tone) {
+  const tones = {
+    Professional: "polished, clear, trustworthy, and suitable for broad marketplace buyers",
+    Casual: "relaxed, natural, and easy to read without sounding too salesy",
+    Friendly: "warm, helpful, and approachable with buyer-friendly wording",
+    Premium: "refined, confident, and value-focused while staying honest",
+    "Short and direct": "concise, direct, and easy to scan",
+  };
+
+  return tones[tone] || tones.Professional;
+}
+
 function inferColourName([r, g, b]) {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -342,6 +355,7 @@ function getDetails() {
     brand: fields.brand.value.trim(),
     condition: fields.condition.value,
     marketplace: fields.marketplace.value,
+    tone: fields.tone.value,
     notes: fields.notes.value.trim(),
   };
 }
@@ -366,8 +380,8 @@ function aiPrompt(details) {
 Return only JSON with this shape:
 {
   "detectedItem": "what the photo appears to show",
-  "title": "short listing title",
-  "description": "friendly marketplace description, 2-4 short paragraphs",
+  "title": "Snap & Sell - short listing title",
+  "description": "in-depth marketplace description, 4-6 useful paragraphs",
   "bullets": ["3-5 buyer-facing selling points"],
   "category": "furniture|electronics|fashion|appliance|sports|general",
   "recommendedPrice": 120,
@@ -391,10 +405,14 @@ Seller details:
 - Brand: ${details.brand || "unknown"}
 - Condition: ${details.condition}
 - Marketplace: ${details.marketplace}
+- Tone: ${details.tone}
 - Extra notes: ${details.notes || "none"}
 
 Rules:
 - First identify what is visible in the image.
+- The title must start with "Snap & Sell - ".
+- Write the description in this tone: ${toneInstruction(details.tone)}.
+- Make the description in-depth: include item summary, visible condition, buyer use case, included/unknown details, pickup/shipping note if relevant, and one honest caveat where details are uncertain.
 - Use seller details when supplied, but do not invent exact model numbers, dimensions, accessories, or defects.
 - If the exact brand/model is uncertain, say that in the description.
 - Compare against realistic similar used marketplace items and explain the pricing logic.
@@ -546,17 +564,21 @@ function buildListing(markGenerated = true) {
   currentCategory = categoryFor(seedText);
   const category = categoryData[currentCategory];
   const titleSubject = details.itemName || category.comps[0];
-  const titleParts = [details.brand, details.condition, titleSubject].filter(Boolean);
+  const titleParts = ["Snap & Sell -", details.brand, details.condition, titleSubject].filter(Boolean);
   const title = titleParts.join(" ");
   const colourLine = imageAnalysis ? `The photo suggests a ${imageAnalysis.colour} main colour.` : "";
-  const detailLine = details.notes ? `Extra details: ${details.notes}` : "Add measurements, accessories, pickup details, and any faults before posting.";
-  const tone = marketplaceTone(details.marketplace);
+  const detailLine = details.notes ? `Seller notes: ${details.notes}` : "Add measurements, accessories, pickup details, and any faults before posting.";
+  const marketplaceLine = marketplaceTone(details.marketplace);
+  const selectedTone = toneInstruction(details.tone);
 
   const description = [
-    `${title} available in ${details.condition.toLowerCase()} condition.`,
-    colourLine,
+    `${titleSubject} available in ${details.condition.toLowerCase()} condition.`,
+    `This Snap & Sell draft gives buyers a fuller picture of the item before they message. It is written in a ${details.tone.toLowerCase()} tone: ${selectedTone}.`,
+    colourLine || "The current photo area is ready for an item image, which will help buyers quickly judge appearance and condition.",
     detailLine,
-    `Prepared for ${details.marketplace}. ${tone}`,
+    `Condition is listed as ${details.condition.toLowerCase()}. Before posting, confirm any visible wear, marks, missing parts, included accessories, size, and pickup or shipping details so buyers know exactly what to expect.`,
+    `This item is positioned in the ${currentCategory} category, with a suggested price range based on similar used marketplace listings. The recommendation is a starting point, not a guarantee, so adjust if your local market is slower or faster.`,
+    `Prepared for ${details.marketplace}. ${marketplaceLine}`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -612,7 +634,8 @@ function applyAiListing(aiListing, details) {
     ? aiListing.bullets.slice(0, 5)
     : ["AI generated listing copy", "Check details before posting", "Confirm price against live listings"];
 
-  output.title.textContent = aiListing.title || details.itemName || "Marketplace listing";
+  const aiTitle = aiListing.title || details.itemName || "Marketplace listing";
+  output.title.textContent = aiTitle.startsWith("Snap & Sell -") ? aiTitle : `Snap & Sell - ${aiTitle}`;
   output.description.textContent = aiListing.description || "AI generated a listing, but no description was returned.";
   output.bullets.replaceChildren(...bullets.map((item) => createListItem(item)));
   output.price.textContent = money(recommended);
