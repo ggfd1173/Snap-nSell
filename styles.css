@@ -1,16 +1,17 @@
 :root {
   color-scheme: light;
-  --ink: #262422;
-  --muted: #6f6860;
-  --line: #ded8cf;
-  --paper: #fbfaf7;
+  --ink: #073f25;
+  --muted: #5f7c6c;
+  --line: #cce6d9;
+  --paper: #ecfff6;
   --panel: #ffffff;
-  --mint: #0f8b7c;
-  --mint-dark: #08675c;
-  --coral: #db6957;
-  --gold: #e3ab28;
-  --clay: #a65f3f;
-  --shadow: 0 18px 50px rgba(51, 44, 35, 0.12);
+  --mint: #1fb86d;
+  --mint-dark: #006f3c;
+  --mint-soft: #dff8eb;
+  --leaf: #a4d39f;
+  --leaf-dark: #547a58;
+  --lime: #31c46f;
+  --shadow: 0 18px 50px rgba(0, 80, 40, 0.12);
 }
 
 * {
@@ -20,7 +21,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--paper);
+  background:
+    radial-gradient(circle at top left, rgba(164, 211, 159, 0.3), transparent 34vw),
+    linear-gradient(180deg, #ecfff6 0%, #f8fffb 62%, #ecfff6 100%);
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -41,7 +44,23 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px clamp(18px, 4vw, 56px) 14px;
+  padding: 18px clamp(18px, 4vw, 56px) 12px;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.brand-logo {
+  width: clamp(70px, 12vw, 110px);
+  height: clamp(70px, 12vw, 110px);
+  border-radius: 8px;
+  object-fit: cover;
+  object-position: center 38%;
+  box-shadow: 0 14px 34px rgba(0, 111, 60, 0.16);
 }
 
 .topbar-actions {
@@ -52,11 +71,10 @@ button {
 
 .eyebrow {
   margin: 0 0 4px;
-  color: var(--coral);
-  font-size: 0.78rem;
+  color: var(--mint);
+  font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 h1,
@@ -68,9 +86,10 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(2rem, 4vw, 4rem);
+  font-size: clamp(2.2rem, 4.5vw, 4.4rem);
   line-height: 0.95;
   letter-spacing: 0;
+  color: var(--mint-dark);
 }
 
 h2 {
@@ -91,8 +110,8 @@ h3 {
   min-height: 34px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fffaf0;
-  color: var(--clay);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--mint-dark);
   padding: 7px 12px;
   font-size: 0.84rem;
   font-weight: 750;
@@ -102,9 +121,9 @@ h3 {
 .install-button {
   display: none;
   min-height: 34px;
-  border: 1px solid rgba(15, 139, 124, 0.4);
+  border: 1px solid rgba(0, 111, 60, 0.3);
   border-radius: 999px;
-  background: var(--mint);
+  background: var(--mint-dark);
   color: #fff;
   padding: 7px 12px;
   font-size: 0.84rem;
@@ -126,22 +145,27 @@ h3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 8px;
+  box-shadow: var(--shadow);
 }
 
 .step-tab {
-  min-height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fffefa;
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
   color: var(--muted);
   padding: 10px;
   font-weight: 850;
 }
 
 .step-tab.active {
-  border-color: rgba(15, 139, 124, 0.5);
-  background: var(--mint);
+  border-color: rgba(0, 111, 60, 0.18);
+  background: var(--mint-dark);
   color: #fff;
+  box-shadow: 0 10px 24px rgba(0, 111, 60, 0.18);
 }
 
 .step-view {
@@ -184,8 +208,9 @@ h3 {
 .output-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--panel);
+  background: rgba(255, 255, 255, 0.86);
   box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
 
 .photo-panel {
@@ -201,15 +226,16 @@ h3 {
   place-items: center;
   min-height: 420px;
   background:
-    linear-gradient(135deg, rgba(15, 139, 124, 0.08), rgba(227, 171, 40, 0.08)),
-    repeating-linear-gradient(45deg, #f6f0e7 0 10px, #f9f7f1 10px 20px);
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.7), transparent 145px),
+    linear-gradient(135deg, rgba(164, 211, 159, 0.28), rgba(31, 184, 109, 0.08)),
+    repeating-linear-gradient(45deg, #e9fff5 0 12px, #f4fff9 12px 24px);
   border-bottom: 1px solid var(--line);
   overflow: hidden;
 }
 
 .drop-zone.dragging {
-  outline: 3px solid rgba(15, 139, 124, 0.35);
-  outline-offset: -10px;
+  outline: 3px solid rgba(31, 184, 109, 0.35);
+  outline-offset: -14px;
 }
 
 .drop-zone input {
@@ -223,7 +249,7 @@ h3 {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: #f5f1ea;
+  background: #f4fff9;
 }
 
 .upload-placeholder {
@@ -239,12 +265,16 @@ h3 {
 .upload-icon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  border: 2px dashed var(--mint);
+  width: 78px;
+  height: 78px;
+  border: 5px solid #f9fff9;
   border-radius: 50%;
-  color: var(--mint);
-  font-size: 2rem;
+  background:
+    radial-gradient(circle at 45% 42%, #2e5a2c 0 11px, transparent 12px),
+    radial-gradient(circle, #f9fff9 0 28px, var(--leaf) 29px 100%);
+  box-shadow: inset 0 0 0 3px var(--leaf-dark), 0 12px 30px rgba(0, 111, 60, 0.16);
+  color: transparent;
+  font-size: 0;
   line-height: 1;
 }
 
@@ -257,7 +287,7 @@ h3 {
 
 .photo-insights div {
   min-width: 0;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.9);
   padding: 14px;
 }
 
@@ -301,8 +331,8 @@ select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fffefa;
+  border-radius: 16px;
+  background: #fbfffd;
   color: var(--ink);
   padding: 12px;
   outline: none;
@@ -317,7 +347,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--mint);
-  box-shadow: 0 0 0 3px rgba(15, 139, 124, 0.15);
+  box-shadow: 0 0 0 4px rgba(31, 184, 109, 0.14);
 }
 
 .actions,
@@ -342,7 +372,7 @@ textarea:focus {
 .ghost-button,
 .icon-button {
   min-height: 42px;
-  border-radius: 8px;
+  border-radius: 16px;
   border: 1px solid transparent;
   padding: 10px 14px;
   font-weight: 850;
@@ -350,17 +380,18 @@ textarea:focus {
 
 .primary-button {
   flex: 1;
-  background: var(--mint);
+  background: var(--mint-dark);
   color: white;
+  box-shadow: 0 12px 24px rgba(0, 111, 60, 0.18);
 }
 
 .primary-button:hover {
-  background: var(--mint-dark);
+  background: #005b31;
 }
 
 .ghost-button,
 .icon-button {
-  background: #fffaf0;
+  background: #f7fffb;
   border-color: var(--line);
   color: var(--ink);
 }
@@ -455,7 +486,7 @@ textarea:focus {
   height: 9px;
   margin-top: 7px;
   border-radius: 50%;
-  background: var(--gold);
+  background: var(--lime);
 }
 
 .checklist li.done::before {
@@ -472,8 +503,9 @@ textarea:focus {
   gap: 8px;
   margin-bottom: 14px;
   padding: 16px;
-  border-left: 5px solid var(--coral);
-  background: #fff7ee;
+  border-left: 5px solid var(--mint);
+  border-radius: 8px;
+  background: var(--mint-soft);
 }
 
 .price-box span,
@@ -489,7 +521,7 @@ textarea:focus {
 .range-bar {
   height: 12px;
   border-radius: 999px;
-  background: #eee5d8;
+  background: #d6efe1;
   overflow: hidden;
 }
 
@@ -498,7 +530,7 @@ textarea:focus {
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--mint), var(--gold), var(--coral));
+  background: linear-gradient(90deg, var(--leaf), var(--lime), var(--mint-dark));
   transition: width 250ms ease;
 }
 
@@ -522,7 +554,7 @@ textarea:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
-  background: #fffefa;
+  background: #fbfffd;
 }
 
 .comparison-card strong {
@@ -548,8 +580,8 @@ textarea:focus {
   transform: translateY(20px);
   opacity: 0;
   pointer-events: none;
-  border-radius: 8px;
-  background: var(--ink);
+  border-radius: 16px;
+  background: var(--mint-dark);
   color: white;
   padding: 12px 14px;
   transition: opacity 180ms ease, transform 180ms ease;

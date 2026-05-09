@@ -13,8 +13,8 @@ const stepTabs = document.querySelectorAll("[data-step-target]");
 const stepViews = document.querySelectorAll("[data-step]");
 
 const OPENROUTER_CONFIG = {
-  enabled: ture,
-  apiKey: "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",
+  enabled: true,
+  apiKey: "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",
   model: "openai/gpt-4o-mini",
 };
 
@@ -320,7 +320,7 @@ async function requestAiListing(details) {
       Authorization: `Bearer ${OPENROUTER_CONFIG.apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": location.origin,
-      "X-OpenRouter-Title": "MarketReady Listing Studio",
+      "X-OpenRouter-Title": "Snap & Sell",
     },
     body: JSON.stringify({
       model: OPENROUTER_CONFIG.model,

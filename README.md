@@ -1,8 +1,8 @@
-# MarketReady Listing Studio
+# Snap & Sell
 
 A mobile-first marketplace listing demo:
 
-1. Upload or take a product photo.
+1. Snap or upload a product photo.
 2. Add item details and review price guidance, similar listings, and market feedback.
 3. Review the generated listing and press a demo-only upload button.
 

@@ -1,12 +1,12 @@
 {
-  "name": "MarketReady Listing Studio",
-  "short_name": "MarketReady",
-  "description": "Create marketplace listings from a product photo, extra details, and market feedback.",
+  "name": "Snap & Sell",
+  "short_name": "Snap & Sell",
+  "description": "Snap a product photo, list it with AI, and sell it with market feedback.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#fbfaf7",
-  "theme_color": "#0f8b7c",
+  "background_color": "#ecfff6",
+  "theme_color": "#006f3c",
   "orientation": "portrait",
   "icons": [
     {
